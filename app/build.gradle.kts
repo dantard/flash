@@ -4,11 +4,7 @@ plugins {
 
 android {
     namespace = "ws.pomelo.flash"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ws.pomelo.flash"

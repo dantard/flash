@@ -18,7 +18,7 @@ class FlashNotificationService : NotificationListenerService() {
         val pkg = sbn.packageName
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
 
-        if (seenNotifications.contains(sbn.key)) return
+        //if (seenNotifications.contains(sbn.key)) return
 
         if (prefs.getBoolean("${pkg}_enabled", false)) {
             val startTime = prefs.getString("${pkg}_start_time", "00:00") ?: "00:00"
@@ -26,8 +26,7 @@ class FlashNotificationService : NotificationListenerService() {
 
             if (isCurrentTimeInRange(startTime, endTime)) {
                 val pattern = prefs.getString("${pkg}_pattern", "200,200") ?: "200,200"
-                val intensity = prefs.getInt("${pkg}_intensity", 10)
-                flashManager.playPattern(pattern, intensity)
+                flashManager.playPattern(pattern)
             }
 
             seenNotifications.add(sbn.key)

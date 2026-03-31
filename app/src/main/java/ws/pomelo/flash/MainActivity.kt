@@ -1,12 +1,24 @@
 package ws.pomelo.flash
 
+import android.Manifest
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
+import android.view.ViewGroup
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -15,6 +27,16 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: FlashConfigAdapter
     private val configs = mutableListOf<FlashConfig>()
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permission granted, you can perform the camera-related task
+        } else {
+            // Permission denied, handle accordingly
+        }
+    }
 
     private val startAppPicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -32,10 +54,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val root = findViewById<ViewGroup>(R.id.main_root)
         val rvConfigs = findViewById<RecyclerView>(R.id.rvConfigs)
+        val fabAdd = findViewById<FloatingActionButton>(R.id.fabAdd)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            
+            rvConfigs.updatePadding(
+                top = systemBars.top + 8.dpToPx(),
+                bottom = systemBars.bottom + 88.dpToPx(),
+                left = systemBars.left + 8.dpToPx(),
+                right = systemBars.right + 8.dpToPx()
+            )
+            
+            fabAdd.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = systemBars.bottom + 24.dpToPx()
+                rightMargin = systemBars.right + 24.dpToPx()
+            }
+            
+            insets
+        }
+
         rvConfigs.layoutManager = LinearLayoutManager(this)
         
         adapter = FlashConfigAdapter(configs, { config, isEnabled ->
@@ -45,13 +89,54 @@ class MainActivity : AppCompatActivity() {
         })
         rvConfigs.adapter = adapter
 
-        findViewById<FloatingActionButton>(R.id.fabAdd).setOnClickListener {
+        fabAdd.setOnClickListener {
             val intent = Intent(this, AppPickerActivity::class.java)
             startAppPicker.launch(intent)
         }
 
         loadConfigs()
+        checkPermissions()
     }
+
+    private fun checkPermissions() {
+        // Camera Permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+
+        // Notification Listener Permission
+        if (!isNotificationServiceEnabled()) {
+            showNotificationPermissionDialog()
+        }
+    }
+
+    private fun isNotificationServiceEnabled(): Boolean {
+        val pkgName = packageName
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        if (flat != null && flat.isNotEmpty()) {
+            val names = flat.split(":")
+            for (name in names) {
+                val cn = ComponentName.unflattenFromString(name)
+                if (cn != null && cn.packageName == pkgName) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun showNotificationPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Notification Access Required")
+            .setMessage("To flash when you receive a notification, this app needs access to your notifications. Please enable it in the next screen.")
+            .setPositiveButton("Settings") { _, _ ->
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun loadConfigs() {
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
@@ -65,12 +150,11 @@ class MainActivity : AppCompatActivity() {
                 val name = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
                 val pattern = prefs.getString("${pkg}_pattern", "200,200") ?: "200,200"
-                val intensity = prefs.getInt("${pkg}_intensity", 10)
                 val startTime = prefs.getString("${pkg}_start_time", "00:00") ?: "00:00"
                 val endTime = prefs.getString("${pkg}_end_time", "23:59") ?: "23:59"
                 val isEnabled = prefs.getBoolean("${pkg}_enabled", true)
 
-                configs.add(FlashConfig(pkg, name, icon, pattern, intensity, startTime, endTime, isEnabled))
+                configs.add(FlashConfig(pkg, name, icon, pattern, startTime, endTime, isEnabled))
             } catch (e: PackageManager.NameNotFoundException) {
                 // App uninstalled?
             }
