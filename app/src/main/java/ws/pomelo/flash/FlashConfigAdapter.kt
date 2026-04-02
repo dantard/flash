@@ -17,6 +17,7 @@ class FlashConfigAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val ivIcon: ImageView = view.findViewById(R.id.ivAppIcon)
         val tvName: TextView = view.findViewById(R.id.tvAppName)
+        val tvFilter: TextView = view.findViewById(R.id.tvFilter)
         val tvPattern: TextView = view.findViewById(R.id.tvPattern)
         val tvInterval: TextView = view.findViewById(R.id.tvInterval)
         val switchEnabled: SwitchCompat = view.findViewById(R.id.switchEnabled)
@@ -32,6 +33,7 @@ class FlashConfigAdapter(
         val config = configs[position]
         holder.ivIcon.setImageDrawable(config.icon)
         holder.tvName.text = config.appName
+        holder.tvFilter.text = if (config.filterText.isEmpty()) "Filter: [Any]" else "Filter: ${config.filterText}"
         holder.tvPattern.text = "Pattern: ${config.pattern}"
         holder.tvInterval.text = "Active: ${config.startTime} - ${config.endTime}"
         

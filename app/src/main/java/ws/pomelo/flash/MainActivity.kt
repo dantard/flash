@@ -13,7 +13,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -32,9 +31,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            // Permission granted, you can perform the camera-related task
-        } else {
-            // Permission denied, handle accordingly
+            // Permission granted
         }
     }
 
@@ -42,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) {
             val packageName = result.data?.getStringExtra("PACKAGE_NAME")
             if (packageName != null) {
-                openConfigEditor(packageName)
+                openConfigEditor(packageName, null)
             }
         }
     }
@@ -83,9 +80,9 @@ class MainActivity : AppCompatActivity() {
         rvConfigs.layoutManager = LinearLayoutManager(this)
         
         adapter = FlashConfigAdapter(configs, { config, isEnabled ->
-            saveEnabledState(config.packageName, isEnabled)
+            saveEnabledState(config.id, isEnabled)
         }, { config ->
-            openConfigEditor(config.packageName)
+            openConfigEditor(config.packageName, config.id)
         })
         rvConfigs.adapter = adapter
 
@@ -99,12 +96,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissions() {
-        // Camera Permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
 
-        // Notification Listener Permission
         if (!isNotificationServiceEnabled()) {
             showNotificationPermissionDialog()
         }
@@ -140,36 +135,39 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadConfigs() {
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
-        val packageList = prefs.getStringSet("configured_packages", emptySet()) ?: emptySet()
+        val configIds = prefs.getStringSet("config_ids", emptySet()) ?: emptySet()
         val pm = packageManager
 
         configs.clear()
-        for (pkg in packageList) {
+        for (id in configIds) {
+            val pkg = prefs.getString("${id}_package", null) ?: continue
             try {
                 val appInfo = pm.getApplicationInfo(pkg, 0)
                 val name = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
-                val pattern = prefs.getString("${pkg}_pattern", "200,200") ?: "200,200"
-                val startTime = prefs.getString("${pkg}_start_time", "00:00") ?: "00:00"
-                val endTime = prefs.getString("${pkg}_end_time", "23:59") ?: "23:59"
-                val isEnabled = prefs.getBoolean("${pkg}_enabled", true)
+                val filterText = prefs.getString("${id}_filter", "") ?: ""
+                val pattern = prefs.getString("${id}_pattern", "200,200") ?: "200,200"
+                val startTime = prefs.getString("${id}_start_time", "00:00") ?: "00:00"
+                val endTime = prefs.getString("${id}_end_time", "23:59") ?: "23:59"
+                val isEnabled = prefs.getBoolean("${id}_enabled", true)
 
-                configs.add(FlashConfig(pkg, name, icon, pattern, startTime, endTime, isEnabled))
+                configs.add(FlashConfig(id, pkg, name, icon, pattern, filterText, startTime, endTime, isEnabled))
             } catch (e: PackageManager.NameNotFoundException) {
-                // App uninstalled?
+                // App uninstalled
             }
         }
         adapter.updateData(configs)
     }
 
-    private fun saveEnabledState(packageName: String, isEnabled: Boolean) {
+    private fun saveEnabledState(configId: String, isEnabled: Boolean) {
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("${packageName}_enabled", isEnabled).apply()
+        prefs.edit().putBoolean("${configId}_enabled", isEnabled).apply()
     }
 
-    private fun openConfigEditor(packageName: String) {
+    private fun openConfigEditor(packageName: String, configId: String?) {
         val intent = Intent(this, ConfigEditorActivity::class.java)
         intent.putExtra("PACKAGE_NAME", packageName)
+        intent.putExtra("CONFIG_ID", configId)
         startConfigEditor.launch(intent)
     }
 }

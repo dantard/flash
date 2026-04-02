@@ -38,6 +38,14 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvFilter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Filter: [None]"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="13sp" />
+
+            <TextView
                 android:id="@+id/tvPattern"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -1,5 +1,6 @@
 package ws.pomelo.flash
 
+import android.app.Notification
 import android.content.Context
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -7,7 +8,6 @@ import java.util.*
 
 class FlashNotificationService : NotificationListenerService() {
     private lateinit var flashManager: FlashManager
-    private val seenNotifications = mutableSetOf<String>()
 
     override fun onCreate() {
         super.onCreate()
@@ -17,21 +17,40 @@ class FlashNotificationService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
+        val configIds = prefs.getStringSet("config_ids", emptySet()) ?: emptySet()
 
-        //if (seenNotifications.contains(sbn.key)) return
+        // Get notification content for filtering
+        val extras = sbn.notification.extras
+        val title = extras.getString(Notification.EXTRA_TITLE, "") ?: ""
+        val text = extras.getCharSequence(Notification.EXTRA_TEXT, "").toString()
+        val fullContent = "$title $text".lowercase()
 
-        if (prefs.getBoolean("${pkg}_enabled", false)) {
-            val startTime = prefs.getString("${pkg}_start_time", "00:00") ?: "00:00"
-            val endTime = prefs.getString("${pkg}_end_time", "23:59") ?: "23:59"
+        val packageConfigs = mutableListOf<FlashConfigData>()
 
-            if (isCurrentTimeInRange(startTime, endTime)) {
-                val pattern = prefs.getString("${pkg}_pattern", "200,200") ?: "200,200"
-                flashManager.playPattern(pattern)
+        for (id in configIds) {
+            val configPackage = prefs.getString("${id}_package", "")
+            if (configPackage == pkg && prefs.getBoolean("${id}_enabled", true)) {
+                packageConfigs.add(FlashConfigData(
+                    id = id,
+                    filter = prefs.getString("${id}_filter", "")?.lowercase() ?: "",
+                    pattern = prefs.getString("${id}_pattern", "200,200") ?: "200,200",
+                    start = prefs.getString("${id}_start_time", "00:00") ?: "00:00",
+                    end = prefs.getString("${id}_end_time", "23:59") ?: "23:59"
+                ))
             }
+        }
 
-            seenNotifications.add(sbn.key)
-            if (seenNotifications.size > 100) {
-                seenNotifications.remove(seenNotifications.first())
+        if (packageConfigs.isEmpty()) return
+
+        // 1. Try to find a specific filter match
+        // 2. Fallback to the "empty" filter (Any) if no specific match found
+        val matchedConfig = packageConfigs.filter { it.filter.isNotEmpty() }
+            .find { fullContent.contains(it.filter) }
+            ?: packageConfigs.find { it.filter.isEmpty() }
+
+        matchedConfig?.let {
+            if (isCurrentTimeInRange(it.start, it.end)) {
+                flashManager.playPattern(it.pattern)
             }
         }
     }
@@ -39,22 +58,28 @@ class FlashNotificationService : NotificationListenerService() {
     private fun isCurrentTimeInRange(start: String, end: String): Boolean {
         val now = Calendar.getInstance()
         val currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+        val startMin = timeToMinutes(start)
+        val endMin = timeToMinutes(end)
 
-        val startParts = start.split(":")
-        val startMinutes = startParts[0].toInt() * 60 + startParts[1].toInt()
-
-        val endParts = end.split(":")
-        val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
-
-        return if (startMinutes <= endMinutes) {
-            currentMinutes in startMinutes..endMinutes
+        return if (startMin <= endMin) {
+            currentMinutes in startMin..endMin
         } else {
             // Overlap midnight (e.g., 22:00 to 07:00)
-            currentMinutes >= startMinutes || currentMinutes <= endMinutes
+            currentMinutes >= startMin || currentMinutes <= endMin
         }
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        seenNotifications.remove(sbn.key)
+    private fun timeToMinutes(time: String): Int {
+        val parts = time.split(":")
+        if (parts.size < 2) return 0
+        return (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
     }
+
+    private data class FlashConfigData(
+        val id: String,
+        val filter: String,
+        val pattern: String,
+        val start: String,
+        val end: String
+    )
 }

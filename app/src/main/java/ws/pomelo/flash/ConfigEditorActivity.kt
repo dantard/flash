@@ -15,13 +15,16 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import java.util.UUID
 
 class ConfigEditorActivity : AppCompatActivity() {
 
+    private var configId: String? = null
     private lateinit var packageName: String
     private var startTime = "00:00"
     private var endTime = "23:59"
 
+    private lateinit var etFilter: EditText
     private lateinit var etPattern: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,11 +47,13 @@ class ConfigEditorActivity : AppCompatActivity() {
             insets
         }
 
+        configId = intent.getStringExtra("CONFIG_ID")
         packageName = intent.getStringExtra("PACKAGE_NAME") ?: return finish()
         
         val ivIcon = findViewById<ImageView>(R.id.ivAppIcon)
         val tvName = findViewById<TextView>(R.id.tvAppName)
         val tvPackage = findViewById<TextView>(R.id.tvPackageName)
+        etFilter = findViewById(R.id.etFilter)
         etPattern = findViewById(R.id.etPattern)
         val btnStart = findViewById<Button>(R.id.btnStartTime)
         val btnEnd = findViewById<Button>(R.id.btnEndTime)
@@ -64,9 +69,14 @@ class ConfigEditorActivity : AppCompatActivity() {
         }
 
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
-        etPattern.setText(prefs.getString("${packageName}_pattern", "200,200"))
-        startTime = prefs.getString("${packageName}_start_time", "00:00") ?: "00:00"
-        endTime = prefs.getString("${packageName}_end_time", "23:59") ?: "23:59"
+        if (configId != null) {
+            etFilter.setText(prefs.getString("${configId}_filter", ""))
+            etPattern.setText(prefs.getString("${configId}_pattern", "200,200"))
+            startTime = prefs.getString("${configId}_start_time", "00:00") ?: "00:00"
+            endTime = prefs.getString("${configId}_end_time", "23:59") ?: "23:59"
+        } else {
+            etPattern.setText("200,200")
+        }
 
         btnStart.text = "Start: $startTime"
         btnEnd.text = "End: $endTime"
@@ -107,17 +117,22 @@ class ConfigEditorActivity : AppCompatActivity() {
 
     private fun saveConfig() {
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
+        val filter = etFilter.text.toString()
         val pattern = etPattern.text.toString()
         
-        val configuredPackages = prefs.getStringSet("configured_packages", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
-        configuredPackages.add(packageName)
+        val id = configId ?: UUID.randomUUID().toString()
+        
+        val configIds = prefs.getStringSet("config_ids", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+        configIds.add(id)
 
         prefs.edit().apply {
-            putStringSet("configured_packages", configuredPackages)
-            putString("${packageName}_pattern", pattern)
-            putString("${packageName}_start_time", startTime)
-            putString("${packageName}_end_time", endTime)
-            putBoolean("${packageName}_enabled", true)
+            putStringSet("config_ids", configIds)
+            putString("${id}_package", packageName)
+            putString("${id}_filter", filter)
+            putString("${id}_pattern", pattern)
+            putString("${id}_start_time", startTime)
+            putString("${id}_end_time", endTime)
+            putBoolean("${id}_enabled", true)
             apply()
         }
         setResult(Activity.RESULT_OK)
@@ -125,16 +140,20 @@ class ConfigEditorActivity : AppCompatActivity() {
     }
 
     private fun deleteConfig() {
+        if (configId == null) return finish()
+        
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
-        val configuredPackages = prefs.getStringSet("configured_packages", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
-        configuredPackages.remove(packageName)
+        val configIds = prefs.getStringSet("config_ids", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+        configIds.remove(configId)
         
         prefs.edit().apply {
-            putStringSet("configured_packages", configuredPackages)
-            remove("${packageName}_pattern")
-            remove("${packageName}_start_time")
-            remove("${packageName}_end_time")
-            remove("${packageName}_enabled")
+            putStringSet("config_ids", configIds)
+            remove("${configId}_package")
+            remove("${configId}_filter")
+            remove("${configId}_pattern")
+            remove("${configId}_start_time")
+            remove("${configId}_end_time")
+            remove("${configId}_enabled")
             apply()
         }
         setResult(Activity.RESULT_OK)

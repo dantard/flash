@@ -64,6 +64,21 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
+                android:text="Filter Text (Flash only if message contains this)"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etFilter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Leave empty for all messages"
+                android:inputType="text" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:text="Flash Pattern (ms)"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textStyle="bold" />
