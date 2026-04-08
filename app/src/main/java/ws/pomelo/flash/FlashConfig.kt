@@ -12,5 +12,8 @@ data class FlashConfig(
     var filterText: String = "",
     var startTime: String, // e.g., "22:00"
     var endTime: String,   // e.g., "07:00"
-    var isEnabled: Boolean
+    var isEnabled: Boolean,
+    var useFlash: Boolean = true,
+    var useVibration: Boolean = false,
+    var useSound: Boolean = false
 )

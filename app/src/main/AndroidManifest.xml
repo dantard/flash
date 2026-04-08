@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
     <uses-feature android:name="android.hardware.camera.flash" />
@@ -19,7 +21,10 @@
         android:theme="@style/Theme.FlashNotify">
 
         <activity android:name=".AppPickerActivity" android:label="Select App" />
-        <activity android:name=".ConfigEditorActivity" android:label="Configure App" />
+        <activity
+            android:name=".ConfigEditorActivity"
+            android:label="Configure App"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity android:name=".MainActivity"
             android:exported="true">

@@ -35,7 +35,10 @@ class FlashNotificationService : NotificationListenerService() {
                     filter = prefs.getString("${id}_filter", "")?.lowercase() ?: "",
                     pattern = prefs.getString("${id}_pattern", "200,200") ?: "200,200",
                     start = prefs.getString("${id}_start_time", "00:00") ?: "00:00",
-                    end = prefs.getString("${id}_end_time", "23:59") ?: "23:59"
+                    end = prefs.getString("${id}_end_time", "23:59") ?: "23:59",
+                    useFlash = prefs.getBoolean("${id}_use_flash", true),
+                    useVibration = prefs.getBoolean("${id}_use_vibration", false),
+                    useSound = prefs.getBoolean("${id}_use_sound", false)
                 ))
             }
         }
@@ -50,7 +53,7 @@ class FlashNotificationService : NotificationListenerService() {
 
         matchedConfig?.let {
             if (isCurrentTimeInRange(it.start, it.end)) {
-                flashManager.playPattern(it.pattern)
+                flashManager.playPattern(it.pattern, it.useFlash, it.useVibration, it.useSound)
             }
         }
     }
@@ -80,6 +83,9 @@ class FlashNotificationService : NotificationListenerService() {
         val filter: String,
         val pattern: String,
         val start: String,
-        val end: String
+        val end: String,
+        val useFlash: Boolean,
+        val useVibration: Boolean,
+        val useSound: Boolean
     )
 }

@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity() {
         rvConfigs.layoutManager = LinearLayoutManager(this)
         
         adapter = FlashConfigAdapter(configs, { config, isEnabled ->
+            config.isEnabled = isEnabled
             saveEnabledState(config.id, isEnabled)
         }, { config ->
             openConfigEditor(config.packageName, config.id)
@@ -123,7 +124,7 @@ class MainActivity : AppCompatActivity() {
     private fun showNotificationPermissionDialog() {
         AlertDialog.Builder(this)
             .setTitle("Notification Access Required")
-            .setMessage("To flash when you receive a notification, this app needs access to your notifications. Please enable it in the next screen.")
+            .setMessage("To notify when you receive a message, this app needs access to your notifications. Please enable it in the next screen.")
             .setPositiveButton("Settings") { _, _ ->
                 startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             }
@@ -150,8 +151,11 @@ class MainActivity : AppCompatActivity() {
                 val startTime = prefs.getString("${id}_start_time", "00:00") ?: "00:00"
                 val endTime = prefs.getString("${id}_end_time", "23:59") ?: "23:59"
                 val isEnabled = prefs.getBoolean("${id}_enabled", true)
+                val useFlash = prefs.getBoolean("${id}_use_flash", true)
+                val useVibration = prefs.getBoolean("${id}_use_vibration", false)
+                val useSound = prefs.getBoolean("${id}_use_sound", false)
 
-                configs.add(FlashConfig(id, pkg, name, icon, pattern, filterText, startTime, endTime, isEnabled))
+                configs.add(FlashConfig(id, pkg, name, icon, pattern, filterText, startTime, endTime, isEnabled, useFlash, useVibration, useSound))
             } catch (e: PackageManager.NameNotFoundException) {
                 // App uninstalled
             }

@@ -8,7 +8,12 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -26,6 +31,9 @@ class ConfigEditorActivity : AppCompatActivity() {
 
     private lateinit var etFilter: EditText
     private lateinit var etPattern: EditText
+    private lateinit var cbFlash: CheckBox
+    private lateinit var cbVibration: CheckBox
+    private lateinit var cbSound: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -55,6 +63,10 @@ class ConfigEditorActivity : AppCompatActivity() {
         val tvPackage = findViewById<TextView>(R.id.tvPackageName)
         etFilter = findViewById(R.id.etFilter)
         etPattern = findViewById(R.id.etPattern)
+        cbFlash = findViewById(R.id.cbFlash)
+        cbVibration = findViewById(R.id.cbVibration)
+        cbSound = findViewById(R.id.cbSound)
+        
         val btnStart = findViewById<Button>(R.id.btnStartTime)
         val btnEnd = findViewById<Button>(R.id.btnEndTime)
 
@@ -74,8 +86,14 @@ class ConfigEditorActivity : AppCompatActivity() {
             etPattern.setText(prefs.getString("${configId}_pattern", "200,200"))
             startTime = prefs.getString("${configId}_start_time", "00:00") ?: "00:00"
             endTime = prefs.getString("${configId}_end_time", "23:59") ?: "23:59"
+            cbFlash.isChecked = prefs.getBoolean("${configId}_use_flash", true)
+            cbVibration.isChecked = prefs.getBoolean("${configId}_use_vibration", false)
+            cbSound.isChecked = prefs.getBoolean("${configId}_use_sound", false)
         } else {
             etPattern.setText("200,200")
+            cbFlash.isChecked = true
+            cbVibration.isChecked = false
+            cbSound.isChecked = false
         }
 
         btnStart.text = "Start: $startTime"
@@ -116,6 +134,11 @@ class ConfigEditorActivity : AppCompatActivity() {
     }
 
     private fun saveConfig() {
+        if (!cbFlash.isChecked && !cbVibration.isChecked && !cbSound.isChecked) {
+            Toast.makeText(this, "Please select at least one notification method", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val prefs = getSharedPreferences("FlashPrefs", Context.MODE_PRIVATE)
         val filter = etFilter.text.toString()
         val pattern = etPattern.text.toString()
@@ -132,7 +155,12 @@ class ConfigEditorActivity : AppCompatActivity() {
             putString("${id}_pattern", pattern)
             putString("${id}_start_time", startTime)
             putString("${id}_end_time", endTime)
-            putBoolean("${id}_enabled", true)
+            putBoolean("${id}_use_flash", cbFlash.isChecked)
+            putBoolean("${id}_use_vibration", cbVibration.isChecked)
+            putBoolean("${id}_use_sound", cbSound.isChecked)
+            if (configId == null) {
+                putBoolean("${id}_enabled", true)
+            }
             apply()
         }
         setResult(Activity.RESULT_OK)
@@ -154,6 +182,9 @@ class ConfigEditorActivity : AppCompatActivity() {
             remove("${configId}_start_time")
             remove("${configId}_end_time")
             remove("${configId}_enabled")
+            remove("${configId}_use_flash")
+            remove("${configId}_use_vibration")
+            remove("${configId}_use_sound")
             apply()
         }
         setResult(Activity.RESULT_OK)

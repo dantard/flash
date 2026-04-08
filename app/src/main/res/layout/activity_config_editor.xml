@@ -26,7 +26,8 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true">
 
         <LinearLayout
@@ -64,7 +65,34 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Filter Text (Flash only if message contains this)"
+                android:text="Notification Options"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/cbFlash"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Flash"
+                android:checked="true" />
+
+            <CheckBox
+                android:id="@+id/cbVibration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Vibration" />
+
+            <CheckBox
+                android:id="@+id/cbSound"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sound (Beep)" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Filter Text (Notify only if message contains this)"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textStyle="bold" />
 
@@ -79,7 +107,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Flash Pattern (ms)"
+                android:text="Notification Pattern (ms)"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textStyle="bold" />
 
@@ -101,7 +129,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_marginBottom="32dp">
 
                 <Button
                     android:id="@+id/btnStartTime"
